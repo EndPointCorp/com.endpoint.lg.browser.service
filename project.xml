@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<project type="activity" builder="java">
+  <name>LG Browser Service</name>
+  <description>
+    Manages browser windows in response to JSON messages
+  </description>
+
+  <identifyingName>com.endpoint.lg.browser.service</identifyingName>
+  <version>0.0.1</version>
+
+  <activity type="interactivespaces_native">
+    <name>com.endpoint.lg.browser.service</name>
+    <class>com.endpoint.lg.browser.service.BrowserServiceActivity</class>
+
+    <configuration>
+      <property name="space.activity.log.level" required="false">
+        <value>debug</value>
+      </property>
+      <property name="space.activity.ros.node.name" required="false">
+        <value>browser_service</value>
+      </property>
+      <property name="space.activity.routes.inputs" required="false">
+        <value>scene_input</value>
+      </property>
+      <property name="space.activity.route.input.scene_input" required="false">
+        <value>/liquidgalaxy/director/scene</value>
+      </property>
+      <property name="space.activity.lg.browser.service.chrome.path" required="false">
+        <value>/usr/bin/chromium-browser</value>
+      </property>
+      <!-- Is it worth adding placeholders to this, like to replace %t with the activity's temp directory? -->
+      <property name="space.activity.lg.browser.service.chrome.flags" required="false">
+        <value>--user-data-dir=/home/josh/tmp/transient/chrome</value>
+      </property>
+    </configuration>
+  </activity>
+</project>
