@@ -19,42 +19,30 @@ import java.util.List;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Handles a single browser instance. Supports commands to navigate to a new
+ * page, and to reload the existing page.
+ *
+ * @author Josh Tolley <josh@endpoint.com>
+ */
 public class BrowserInstance {
     private NativeActivityRunnerFactory runnerFactory;
     private Log log;
     private Configuration config;
     private WebSocketClientService webSocketClientService;
+    private WebSocketClient debugWebSocket;
 
     BrowserInstance(Configuration cfg, Log lg,
             NativeActivityRunnerFactory nrf, WebSocketClientService wsockService)
     {
+        int debugPort = 9922;   // XXX Choose this in a way that won't fail
+                                // miserably if some hardcoded port happens to
+                                // be unavailable
+
         runnerFactory = nrf;
         log = lg;
         config = cfg;
         webSocketClientService = wsockService;
-    }
-
-    private Log getLog() {
-        return log;
-    }
-
-    /*
-        {
-            "activity": "browser", 
-            "assets": [
-            "http://lg-cms/media/assets/afghanistan_info.html"
-            ], 
-            "height": 1920, 
-            "presentation_viewport": "42-b", 
-            "width": 1080, 
-            "x_coord": 0, 
-            "y_coord": 0
-        }
-    */
-    public void handleBrowserCommand(Map<String, Object> cmd) {
-        int debugPort = 9922;   // XXX Choose this in a way that won't fail
-                                // miserably if some hardcoded port happens to
-                                // be unavailable
         NativeActivityRunner runner = runnerFactory.newPlatformNativeActivityRunner(getLog());
         Map<String, Object> runnerConfig = Maps.newHashMap();
 
@@ -84,22 +72,26 @@ public class BrowserInstance {
 
         // Establish connection to the debug stuff
             // XXX So how do we know it should be ready for our debug connection?
-            // XXX Start a pool of browsers (or just one, or something) when this all starts, and get the debugger connected
+            // XXX Start a pool of browsers (or just one, or something) when
+            // this all starts, and get the debugger connected
         try {
             Thread.sleep(5000);
         }
         catch (InterruptedException e) {}
 
-        getBrowserInstance(debugPort);
+        connectDebugger(debugPort);
     }
 
-    public void getBrowserInstance(int debugPort) {
+    private Log getLog() {
+        return log;
+    }
+
+    private void connectDebugger(int debugPort) {
         HttpClient httpclient = new DefaultHttpClient();
         HttpGet httpget;
         HttpResponse resp;
         StringBuilder sb;
         InputStream is;
-        WebSocketClient wsclient;
         byte[] buffer = new byte[2048];
         int length;
 
@@ -118,8 +110,8 @@ public class BrowserInstance {
             getLog().debug(sb);
 
             String url = getForegroundWSUrl(sb.toString());
-            wsclient = getWSConnection(url);
-            wsclient.startup();
+            createWSConnection(url);
+            debugWebSocket.startup();
         }
         catch (IOException e) {
             getLog().error("Exception connecting to browser debug port", e);
@@ -127,7 +119,7 @@ public class BrowserInstance {
     }
 
     @SuppressWarnings("unchecked")
-    public String getForegroundWSUrl(String json) {
+    private String getForegroundWSUrl(String json) {
         JsonMapper jm = new JsonMapper();
         Map<String, Object> tabs = jm.parseObject(json);
         List<Map<String, String>> tablist = (List<Map<String, String>>) tabs.get("tabs");
@@ -140,32 +132,44 @@ public class BrowserInstance {
     }
 
     private class BrowserDebugWebSocketHandler implements WebSocketHandler {
-        // XXX Make getter / setter for this, and turn it private
-        public WebSocketClient wsclient;
-
         @Override
         public void onConnect() {
-            String command = "{\"id\":1,\"method\":\"Page.navigate\",\"params\":{\"url\":\"http://www.endpoint.com\"}}";
-            log.debug("Connect: " + command);
-            wsclient.writeDataAsString( command );
+            getLog().debug("Connect");
         }
 
         @Override
         public void onClose() {
-            log.debug("Close");
+            getLog().debug("Close");
         }
 
         @Override
         public void onReceive(Object msg) {
-            log.debug("Receive: " + msg.toString());
+            getLog().debug("Receive: " + msg.toString());
         }
 
     }
 
-    public WebSocketClient getWSConnection(String url) {
-        BrowserDebugWebSocketHandler handler = new BrowserDebugWebSocketHandler();
-        WebSocketClient wsclient = webSocketClientService.newWebSocketClient(url, handler, getLog());
-        handler.wsclient = wsclient;
-        return wsclient;
+    private void createWSConnection(String url) {
+        debugWebSocket = webSocketClientService.newWebSocketClient(url, new BrowserDebugWebSocketHandler(), getLog());
+    }
+
+    public void navigate(String url) {
+        // Note that we could use JSON builders for this, but these commands
+        // are short, and easy enough just to put together manually.
+
+        // XXX Do something if we're not yet connected
+
+            // Note that this doesn't sanitize the url variable. If someone
+            // gets worried about "url injection" they're welcome to change that.
+        String command = "{\"id\":1,\"method\":\"Page.navigate\",\"params\":{\"url\":\"" + url + "\"}}";
+        getLog().info("Sending navigate command: " + command);
+        debugWebSocket.writeDataAsString(command);
+    }
+
+    public void reload() {
+        // XXX Do something if we're not yet connected
+        String command = "{\"id\":1,\"method\":\"Page.reload\",\"params\":{\"ignoreCache\":\"True\"}}";
+        getLog().debug("Sending reload command: " + command);
+        debugWebSocket.writeDataAsString(command);
     }
 }
