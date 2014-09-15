@@ -30,7 +30,7 @@
       </property>
       <!-- Is it worth adding placeholders to this, like to replace %t with the activity's temp directory? -->
       <property name="space.activity.lg.browser.service.chrome.flags" required="false">
-        <value>--user-data-dir=/home/josh/tmp/transient/chrome</value>
+        <value>--user-data-dir=/home/josh/tmp/transient/chrome --kiosk</value>
       </property>
     </configuration>
   </activity>
