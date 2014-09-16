@@ -1,5 +1,9 @@
 package com.endpoint.lg.browser.service;
 
+import com.endpoint.lg.support.window.WindowIdentity;
+import com.endpoint.lg.support.window.WindowInstanceIdentity;
+import com.endpoint.lg.support.window.ManagedWindow;
+import interactivespaces.activity.impl.BaseActivity;
 import interactivespaces.activity.binary.NativeActivityRunner;
 import interactivespaces.activity.binary.NativeActivityRunnerFactory;
 import interactivespaces.util.process.restart.LimitedRetryRestartStrategy;
@@ -18,6 +22,7 @@ import java.util.Map;
 import java.util.List;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.File;
 
 /**
  * Handles a single browser instance. Supports commands to navigate to a new
@@ -31,19 +36,28 @@ public class BrowserInstance {
     private Configuration config;
     private WebSocketClientService webSocketClientService;
     private WebSocketClient debugWebSocket;
+    private WindowIdentity windowId;
+    private ManagedWindow window;
+    private BaseActivity activity;
+    private NativeActivityRunner runner;
 
-    BrowserInstance(Configuration cfg, Log lg,
+    BrowserInstance(BaseActivity act, Configuration cfg, Log lg,
             NativeActivityRunnerFactory nrf, WebSocketClientService wsockService)
     {
         int debugPort = 9922;   // XXX Choose this in a way that won't fail
                                 // miserably if some hardcoded port happens to
                                 // be unavailable
 
+        final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
+        windowId = new WindowInstanceIdentity(tmpdir.getAbsolutePath());
+        window = new ManagedWindow(act, windowId);
+
+        activity = act;
         runnerFactory = nrf;
         log = lg;
         config = cfg;
         webSocketClientService = wsockService;
-        NativeActivityRunner runner = runnerFactory.newPlatformNativeActivityRunner(getLog());
+        runner = runnerFactory.newPlatformNativeActivityRunner(getLog());
         Map<String, Object> runnerConfig = Maps.newHashMap();
 
         runnerConfig.put(
@@ -61,7 +75,8 @@ public class BrowserInstance {
         // runner.setRestartStrategy(new LimitedRetryRestartStrategy(10, 100, 5000, getSpaceEnvironment()));
 
         runner.configure(runnerConfig);
-        runner.startup();
+        activity.addManagedResource(runner);
+        activity.addManagedResource(window);
 
         // XXX Do something to fail this loop eventually
         while (! runner.isRunning()) {
@@ -72,14 +87,13 @@ public class BrowserInstance {
 
         // Establish connection to the debug stuff
             // XXX So how do we know it should be ready for our debug connection?
-            // XXX Start a pool of browsers (or just one, or something) when
-            // this all starts, and get the debugger connected
         try {
-            Thread.sleep(5000);
+            Thread.sleep(1500);
         }
         catch (InterruptedException e) {}
 
         connectDebugger(debugPort);
+        window.setVisible(false);
     }
 
     private Log getLog() {
@@ -111,7 +125,8 @@ public class BrowserInstance {
 
             String url = getForegroundWSUrl(sb.toString());
             createWSConnection(url);
-            debugWebSocket.startup();
+            //debugWebSocket.startup();
+            activity.addManagedResource(debugWebSocket);
         }
         catch (IOException e) {
             getLog().error("Exception connecting to browser debug port", e);
@@ -172,4 +187,13 @@ public class BrowserInstance {
         getLog().debug("Sending reload command: " + command);
         debugWebSocket.writeDataAsString(command);
     }
+
+    public void shutdown() {
+        debugWebSocket.shutdown();
+        runner.shutdown();
+        window.shutdown();
+    }
+
+    // XXX there should be some way to fiddle with geometry and window location
+    // It's suggested I look in the appwrapper config in lg-cms for examples of how this is currently done
 }

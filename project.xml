@@ -32,6 +32,22 @@
       <property name="space.activity.lg.browser.service.chrome.flags" required="false">
         <value>--user-data-dir=/home/josh/tmp/transient/chrome --kiosk</value>
       </property>
+      <!-- These are here just to make the ManagedWindow stuff work, but are probably wrong -->
+      <property name="lg.window.viewport.target" required="false">
+        <value>some_viewport</value>
+      </property>
+      <property name="lg.window.viewport.some_viewport.width" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.window.viewport.some_viewport.height" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.window.viewport.some_viewport.x" required="false">
+        <value>10</value>
+      </property>
+      <property name="lg.window.viewport.some_viewport.y" required="false">
+        <value>10</value>
+      </property>
     </configuration>
   </activity>
 </project>

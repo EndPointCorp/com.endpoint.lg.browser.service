@@ -17,7 +17,7 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     @Override
     public void onActivityStartup() {
         bc = new BrowserInstanceContainer(
-            getConfiguration(), getLog(),
+            this, getConfiguration(), getLog(),
             getController().getNativeActivityRunnerFactory(),
             getSpaceEnvironment());
         getLog().info("Activity com.endpoint.lg.browser.service startup");
