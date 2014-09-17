@@ -56,43 +56,15 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         getLog().info("Activity com.endpoint.lg.browser.service cleanup");
     }
 
-    /*
-        {
-          "description": "<p>Its local name is Tāžī Spay (Pashto: تاژي سپی‎)</p>", 
-          "duration": 33, 
-          "name": "Afghan Hound", 
-          "resource_uri": "/director_api/scene/afghan-hound/", 
-          "slug": "afghan-hound", 
-          "windows": [
-            {
-              "activity": "video", 
-                ...
-            }, 
-            {
-              "activity": "earth", 
-                ...
-            }, 
-            {
-              "activity": "browser", 
-              "assets": [
-                "http://lg-cms/media/assets/afghanistan_info.html"
-              ], 
-              "height": 1920, 
-              "presentation_viewport": "42-b", 
-              "width": 1080, 
-              "x_coord": 0, 
-              "y_coord": 0
-            }
-          ]
-        }, 
-    */
     public void onNewInputJson(String channelName, Map<String, Object> message) {
         Scene s;
 
         try {
             s = Scene.fromJson(jsonStringify(message));
             for (Window w : s.windows) {
-                if (w.activity.equals("browser")) {
+                if (w.activity.equals("browser") && w.presentation_viewport.equals(
+                        getConfiguration().getRequiredPropertyString("space.activity.browser.viewport")
+                    )) {
                     bc.handleBrowserCommand(w);
                 }
             }
