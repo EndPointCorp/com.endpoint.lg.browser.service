@@ -1,10 +1,13 @@
 package com.endpoint.lg.browser.service;
 
-import interactivespaces.activity.impl.ros.BaseRoutableRosActivity;
-import com.google.common.collect.Maps;
-import java.util.Map;
-import java.util.List;
 import com.endpoint.lg.browser.service.BrowserInstanceContainer;
+import com.endpoint.lg.support.message.Scene;
+import com.endpoint.lg.support.message.Window;
+import com.google.common.collect.Maps;
+import interactivespaces.activity.impl.ros.BaseRoutableRosActivity;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 public class BrowserServiceActivity extends BaseRoutableRosActivity {
     private BrowserInstanceContainer bc;
@@ -84,28 +87,18 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         }, 
     */
     public void onNewInputJson(String channelName, Map<String, Object> message) {
-        if (! message.containsKey("windows")) {
-            getLog().debug("browser service received message we couldn't understand");
-            return;
-        }
-        try {
-            parseWindowMessage(message);
-        }
-        catch (ClassCastException c) {
-            getLog().error("Somewhere we failed to understand this message", c);
-        }
-    }
+        Scene s;
 
-    @SuppressWarnings("unchecked")
-    public void parseWindowMessage(Map<String, Object> message) {
-        getLog().debug("Got windows object of type " + message.get("windows").getClass().getName());
-        for (Map<String, Object> window : (List<Map<String, Object>>) message.get("windows")) {
-            getLog().debug("got window object of type " + window.getClass().getName());
-            if (((String) window.get("activity")).equals("browser")) {
-                getLog().debug("Found a browser element: " + window);
-                bc.handleBrowserCommand(window);
+        try {
+            s = Scene.fromJson(jsonStringify(message));
+            for (Window w : s.windows) {
+                if (w.activity.equals("browser")) {
+                    bc.handleBrowserCommand(w);
+                }
             }
         }
+        catch (IOException e) {
+            getLog().error("Couldn't parse JSON message", e);
+        }
     }
-
 }
