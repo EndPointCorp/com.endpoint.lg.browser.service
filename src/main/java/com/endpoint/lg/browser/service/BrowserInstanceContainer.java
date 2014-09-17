@@ -1,14 +1,15 @@
 package com.endpoint.lg.browser.service;
 
+import com.endpoint.lg.browser.service.BrowserInstance;
+import com.endpoint.lg.support.message.Window;
 import interactivespaces.activity.binary.NativeActivityRunnerFactory;
+import interactivespaces.activity.impl.BaseActivity;
 import interactivespaces.configuration.Configuration;
 import interactivespaces.service.web.client.WebSocketClientService;
 import interactivespaces.system.InteractiveSpacesEnvironment;
-import interactivespaces.activity.impl.BaseActivity;
-import org.apache.commons.logging.Log;
-import com.endpoint.lg.browser.service.BrowserInstance;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
+import org.apache.commons.logging.Log;
 
 /**
  * Class to interact with browser instances. Ideally this will manage a running
@@ -39,26 +40,13 @@ public class BrowserInstanceContainer {
     /**
      */
     @SuppressWarnings("unchecked")
-    public void handleBrowserCommand(Map<String, Object> cmd) {
-        /* Typical scene message:
-            {
-                "activity": "browser", 
-                "assets": [
-                "http://lg-cms/media/assets/afghanistan_info.html"
-                ], 
-                "height": 1920, 
-                "presentation_viewport": "42-b", 
-                "width": 1080, 
-                "x_coord": 0, 
-                "y_coord": 0
-            }
-        */
+    public void handleBrowserCommand(Window window) {
         // XXX Eventually, this should recycle browser instances and actually
         // behave as a container, rather than just creating a new one for each
         // message
+        // XXX Do something with geometry stuff
         BrowserInstance b = new BrowserInstance(activity, config, log, runnerFactory, webSocketClientService);
-        List<String> urls = (List<String>) cmd.get("assets");
-        b.navigate(urls.get(0));
+        b.navigate(window.assets[0]);
         // XXX Don't just lose the browser instance here. We've got to shut it down, at the very least.
     }
 }

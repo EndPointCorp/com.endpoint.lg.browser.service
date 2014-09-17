@@ -125,8 +125,12 @@ public class BrowserInstance {
 
             String url = getForegroundWSUrl(sb.toString());
             createWSConnection(url);
-            //debugWebSocket.startup();
-            activity.addManagedResource(debugWebSocket);
+
+            // You'd think addManagedResource would be the way to go. Somehow
+            // it sets debugWebSocket to null, though, so later navigate
+            // commands fail. So I'm just calling startup() instead
+            debugWebSocket.startup();
+            //activity.addManagedResource(debugWebSocket);
         }
         catch (IOException e) {
             getLog().error("Exception connecting to browser debug port", e);
