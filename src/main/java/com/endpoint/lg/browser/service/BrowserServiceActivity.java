@@ -1,6 +1,6 @@
 package com.endpoint.lg.browser.service;
 
-import com.endpoint.lg.browser.service.BrowserInstanceContainer;
+import com.endpoint.lg.browser.service.BrowserInstance;
 import com.endpoint.lg.support.message.Scene;
 import com.endpoint.lg.support.message.Window;
 import com.google.common.collect.Maps;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BrowserServiceActivity extends BaseRoutableRosActivity {
-    private BrowserInstanceContainer bc;
+    private BrowserInstance bc;
 
     @Override
     public void onActivitySetup() {
@@ -19,7 +19,7 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
 
     @Override
     public void onActivityStartup() {
-        bc = new BrowserInstanceContainer(
+        bc = new BrowserInstance(
             this, getConfiguration(), getLog(),
             getController().getNativeActivityRunnerFactory(),
             getSpaceEnvironment());

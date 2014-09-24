@@ -1,63 +1,137 @@
 package com.endpoint.lg.browser.service;
 
-import com.endpoint.lg.support.window.WindowIdentity;
-import com.endpoint.lg.support.window.WindowInstanceIdentity;
-import com.endpoint.lg.support.window.ManagedWindow;
-import interactivespaces.activity.impl.BaseActivity;
+import com.endpoint.lg.browser.service.BrowserWindow;
+import com.endpoint.lg.support.message.Window;
+import com.google.common.collect.Maps;
 import interactivespaces.activity.binary.NativeActivityRunner;
 import interactivespaces.activity.binary.NativeActivityRunnerFactory;
-import interactivespaces.util.process.restart.LimitedRetryRestartStrategy;
+import interactivespaces.activity.impl.BaseActivity;
 import interactivespaces.configuration.Configuration;
-import interactivespaces.util.data.json.JsonMapper;
+import interactivespaces.InteractiveSpacesException;
 import interactivespaces.service.web.client.WebSocketClientService;
-import interactivespaces.service.web.client.WebSocketClient;
-import interactivespaces.service.web.WebSocketHandler;
+import interactivespaces.system.InteractiveSpacesEnvironment;
+import interactivespaces.util.data.json.JsonMapper;
+import java.io.File;
+import java.io.InputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.commons.logging.Log;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.commons.logging.Log;
-import com.google.common.collect.Maps;
-import java.util.Map;
-import java.util.List;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.File;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
- * Handles a single browser instance. Supports commands to navigate to a new
- * page, and to reload the existing page.
+ * Class to manage one browser instance, with one or more windows.
  *
  * @author Josh Tolley <josh@endpoint.com>
- */
+*/
 public class BrowserInstance {
+    private static int MIN_DEBUG_PORT = 9000;
+    private static int MAX_DEBUG_PORT = 10000;
+
     private NativeActivityRunnerFactory runnerFactory;
+    private NativeActivityRunner runner;
     private Log log;
     private Configuration config;
     private WebSocketClientService webSocketClientService;
-    private WebSocketClient debugWebSocket;
-    private WindowIdentity windowId;
-    private ManagedWindow window;
     private BaseActivity activity;
-    private NativeActivityRunner runner;
-    private boolean enabled;
-    private int debugPort;
+    private int debugPort = 0;
+    private boolean valid;
+    private List<BrowserWindow> windows;
+    private Set<String> connectedWindows;
 
-    BrowserInstance(int _debugPort, BaseActivity act, Configuration cfg, Log lg,
-            NativeActivityRunnerFactory nrf, WebSocketClientService wsockService)
-    {
+    BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
-        windowId = new WindowInstanceIdentity(tmpdir.getAbsolutePath());
-        window = new ManagedWindow(act, windowId);
 
-        disableInstance();
-        activity = act;
+        valid = false;
         runnerFactory = nrf;
+        activity = act;
         log = lg;
         config = cfg;
-        webSocketClientService = wsockService;
-        runner = runnerFactory.newPlatformNativeActivityRunner(getLog());
-        debugPort = _debugPort;
+        windows = new ArrayList<BrowserWindow>();
+        connectedWindows = new HashSet<String>();
+        webSocketClientService = ise.getServiceRegistry().getService(WebSocketClientService.SERVICE_NAME);
+        // XXX disableWindow();
+        runner = runnerFactory.newPlatformNativeActivityRunner(log);
+
+        debugPort = findDebugPort();
+        if (debugPort == 0) {
+            return;
+        }
+
+        runBrowser();
+        valid = true;
+
+        // XXX Do something to fail this loop eventually
+        while (! runner.isRunning()) {
+            try {
+                Thread.sleep(100);
+            } catch(InterruptedException e) { }
+        }
+
+        // Establish connection to the debug stuff
+            // XXX So how do we know it should be ready for our debug connection?
+        try {
+            Thread.sleep(1500);
+        }
+        catch (InterruptedException e) {}
+
+        connectWindows(debugPort);
+    }
+
+    /**
+     * Connects a websocket to each available browser tab that isn't already connected
+     */
+    private void connectWindows(int debugPort) {
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpGet httpget;
+        HttpResponse resp;
+        StringBuilder sb;
+        InputStream is;
+        byte[] buffer = new byte[2048];
+        int length;
+
+        ObjectMapper om = new ObjectMapper();
+        httpget = new HttpGet("http://localhost:" + debugPort + "/json");
+        try {
+            resp = httpclient.execute(httpget);
+            getLog().debug("Response: " + resp);
+            sb = new StringBuilder();
+            is = resp.getEntity().getContent();
+            sb.append("{\"tabs\":");
+            while ((length = is.read(buffer)) != -1) {
+                sb.append(new String(buffer, 0, length));
+            }
+            sb.append("}");
+            is.close();
+            getLog().debug(sb);
+            BrowserDebugInfo d = om.readValue(sb.toString(), BrowserDebugInfo.class);
+            for (BrowserTabInfo t : d.tabs) {
+                if (!connectedWindows.contains(t.id)) {
+                    connectedWindows.add(t.id);
+                    if (t.type.equals("page")) {
+                        windows.add(new BrowserWindow(t, activity, getLog(), webSocketClientService));
+                    }
+                }
+            }
+        }
+        catch (IOException e) {
+            getLog().error("Exception connecting to browser debug port", e);
+        }
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    private void runBrowser() {
         Map<String, Object> runnerConfig = Maps.newHashMap();
 
         runnerConfig.put(
@@ -76,143 +150,90 @@ public class BrowserInstance {
 
         runner.configure(runnerConfig);
         activity.addManagedResource(runner);
-        activity.addManagedResource(window);
-
-        // XXX Do something to fail this loop eventually
-        while (! runner.isRunning()) {
-            try {
-                Thread.sleep(100);
-            } catch(InterruptedException e) { }
-        }
-
-        // Establish connection to the debug stuff
-            // XXX So how do we know it should be ready for our debug connection?
-        try {
-            Thread.sleep(1500);
-        }
-        catch (InterruptedException e) {}
-
-        connectDebugger(debugPort);
-        window.setVisible(false);
     }
 
     private Log getLog() {
         return log;
     }
 
-    private void connectDebugger(int debugPort) {
-        HttpClient httpclient = new DefaultHttpClient();
-        HttpGet httpget;
-        HttpResponse resp;
-        StringBuilder sb;
-        InputStream is;
-        byte[] buffer = new byte[2048];
-        int length;
-
-        httpget = new HttpGet("http://localhost:" + debugPort + "/json");
-        try {
-            resp = httpclient.execute(httpget);
-            getLog().debug("Response: " + resp);
-            sb = new StringBuilder();
-            is = resp.getEntity().getContent();
-            sb.append("{\"tabs\":");
-            while ((length = is.read(buffer)) != -1) {
-                sb.append(new String(buffer, 0, length));
-            }
-            sb.append("}");
-            is.close();
-            getLog().debug(sb);
-
-            String url = getForegroundWSUrl(sb.toString());
-            createWSConnection(url);
-
-            // You'd think addManagedResource would be the way to go. Somehow
-            // it sets debugWebSocket to null, though, so later navigate
-            // commands fail. So I'm just calling startup() instead
-            debugWebSocket.startup();
-            //activity.addManagedResource(debugWebSocket);
-        }
-        catch (IOException e) {
-            getLog().error("Exception connecting to browser debug port", e);
+    /**
+     * Signals container that all existing browsers can be recycled, such as
+     * when a new scene message comes in
+     */
+    public void newScene() {
+        for (BrowserWindow b : windows) {
+            b.disableWindow();
         }
     }
 
+    /**
+     * Responds to individual window commands
+     */
     @SuppressWarnings("unchecked")
-    private String getForegroundWSUrl(String json) {
-        JsonMapper jm = new JsonMapper();
-        Map<String, Object> tabs = jm.parseObject(json);
-        List<Map<String, String>> tablist = (List<Map<String, String>>) tabs.get("tabs");
-        for (Map<String, String> t : tablist) {
-            getLog().debug("Found tab: " + t.get("type") + " " + t.get("description"));
-            if (t.get("type").equals("page"))
-                return t.get("webSocketDebuggerUrl");
-        }
-        return null;
-    }
+    public void handleBrowserCommand(Window window) {
+        boolean found = false;
 
-    private class BrowserDebugWebSocketHandler implements WebSocketHandler {
-        @Override
-        public void onConnect() {
-            getLog().debug("Connect");
+        // XXX Do something with geometry stuff
+
+        // Search for a disabled instance we can use for this command.
+        for (BrowserWindow b : windows) {
+            if (! b.isEnabled()) {
+                b.navigate(window.assets[0]);
+                found = true;
+                break;
+            }
         }
 
-        @Override
-        public void onClose() {
-            getLog().debug("Close");
+        // Start another instance if we can't find one available already
+        if (! found) {
         }
+    }
 
-        @Override
-        public void onReceive(Object msg) {
-            getLog().debug("Receive: " + msg.toString());
+    /**
+     * Finds an available debug port
+     *
+     * This could fail, if we find a port and something steals it before we get
+     * a browser listening on it. This seems unlikely. Note that chromium
+     * doesn't fail if its assigned debug port is unavailable (at least so far
+     * as I can tell)
+     */
+    private int findDebugPort() {
+        int debugPort = 0;
+        ServerSocket s = null;
+
+        for (int i = MIN_DEBUG_PORT; i < MAX_DEBUG_PORT; i++) {
+            try {
+                s = new ServerSocket(i);
+                s.setReuseAddress(true);
+                debugPort = i;
+            }
+            catch (IOException e) {
+                // Port isn't available
+            }
+            finally {
+                try {
+                    if (s != null) {
+                        s.close();
+                    }
+                }
+                catch (IOException e) {
+                    // s wasn't opened. Don't throw this
+                }
+            }
+            if (debugPort != 0)
+                break;
         }
-
-    }
-
-    private void createWSConnection(String url) {
-        debugWebSocket = webSocketClientService.newWebSocketClient(url, new BrowserDebugWebSocketHandler(), getLog());
-    }
-
-    public void disableInstance() {
-        enabled = false;
-        window.setVisible(false);
-    }
-
-    public void enableInstance() {
-        enabled = true;
-        window.setVisible(true);
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void navigate(String url) {
-        // We could use JSON builders for this, but these commands are short,
-        // and easy enough just to put together manually.
-
-        // XXX Do something if we're not yet connected
-
-            // Note that this doesn't sanitize the url variable. If someone
-            // gets worried about "url injection" they're welcome to change that.
-        String command = "{\"id\":1,\"method\":\"Page.navigate\",\"params\":{\"url\":\"" + url + "\"}}";
-        getLog().info("Sending navigate command: " + command);
-        debugWebSocket.writeDataAsString(command);
-        enableInstance();
-    }
-
-    public void reload() {
-        // XXX Do something if we're not yet connected
-        String command = "{\"id\":1,\"method\":\"Page.reload\",\"params\":{\"ignoreCache\":\"True\"}}";
-        getLog().debug("Sending reload command: " + command);
-        debugWebSocket.writeDataAsString(command);
+        if (debugPort == 0) {
+            getLog().error("Couldn't find unused debug port for new browser activity");
+        }
+        getLog().debug("Found debug port " + debugPort + " for new browser instance");
+        return debugPort;
     }
 
     public void shutdown() {
-        debugWebSocket.shutdown();
+        for (BrowserWindow w : windows) {
+            w.shutdown();
+        }
         runner.shutdown();
-        window.shutdown();
     }
-
-    // XXX there should be some way to fiddle with geometry and window location
-    // It's suggested I look in the appwrapper config in lg-cms for examples of how this is currently done
 }
