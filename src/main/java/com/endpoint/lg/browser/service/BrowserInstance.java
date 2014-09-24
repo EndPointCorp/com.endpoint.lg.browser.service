@@ -40,24 +40,24 @@ public class BrowserInstance {
     private ManagedWindow window;
     private BaseActivity activity;
     private NativeActivityRunner runner;
+    private boolean enabled;
+    private int debugPort;
 
-    BrowserInstance(BaseActivity act, Configuration cfg, Log lg,
+    BrowserInstance(int _debugPort, BaseActivity act, Configuration cfg, Log lg,
             NativeActivityRunnerFactory nrf, WebSocketClientService wsockService)
     {
-        int debugPort = 9922;   // XXX Choose this in a way that won't fail
-                                // miserably if some hardcoded port happens to
-                                // be unavailable
-
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
         windowId = new WindowInstanceIdentity(tmpdir.getAbsolutePath());
         window = new ManagedWindow(act, windowId);
 
+        disableInstance();
         activity = act;
         runnerFactory = nrf;
         log = lg;
         config = cfg;
         webSocketClientService = wsockService;
         runner = runnerFactory.newPlatformNativeActivityRunner(getLog());
+        debugPort = _debugPort;
         Map<String, Object> runnerConfig = Maps.newHashMap();
 
         runnerConfig.put(
@@ -172,9 +172,23 @@ public class BrowserInstance {
         debugWebSocket = webSocketClientService.newWebSocketClient(url, new BrowserDebugWebSocketHandler(), getLog());
     }
 
+    public void disableInstance() {
+        enabled = false;
+        window.setVisible(false);
+    }
+
+    public void enableInstance() {
+        enabled = true;
+        window.setVisible(true);
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     public void navigate(String url) {
-        // Note that we could use JSON builders for this, but these commands
-        // are short, and easy enough just to put together manually.
+        // We could use JSON builders for this, but these commands are short,
+        // and easy enough just to put together manually.
 
         // XXX Do something if we're not yet connected
 
@@ -183,6 +197,7 @@ public class BrowserInstance {
         String command = "{\"id\":1,\"method\":\"Page.navigate\",\"params\":{\"url\":\"" + url + "\"}}";
         getLog().info("Sending navigate command: " + command);
         debugWebSocket.writeDataAsString(command);
+        enableInstance();
     }
 
     public void reload() {

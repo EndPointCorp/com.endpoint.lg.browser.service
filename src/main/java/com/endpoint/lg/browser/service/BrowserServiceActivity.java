@@ -59,8 +59,10 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     public void onNewInputJson(String channelName, Map<String, Object> message) {
         Scene s;
 
+        getLog().debug("Browser service activity got new message: " + message);
         try {
             s = Scene.fromJson(jsonStringify(message));
+            bc.newScene();
             for (Window w : s.windows) {
                 if (w.activity.equals("browser") && w.presentation_viewport.equals(
                         getConfiguration().getRequiredPropertyString("space.activity.browser.viewport")
