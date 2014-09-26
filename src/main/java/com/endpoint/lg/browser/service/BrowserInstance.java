@@ -88,6 +88,8 @@ public class BrowserInstance {
 
     /**
      * Connects a websocket to each available browser tab that isn't already connected
+     *
+     * XXX Really need to test this with multiple calls, multiple windows, etc.
      */
     private void connectWindows(int debugPort) {
         HttpClient httpclient = new DefaultHttpClient();
