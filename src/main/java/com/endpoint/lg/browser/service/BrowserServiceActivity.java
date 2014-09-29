@@ -44,6 +44,7 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     @Override
     public void onActivityPreShutdown() {
         getLog().info("Activity com.endpoint.lg.browser.service pre shutdown");
+        bc.shutdown();
     }
 
     @Override
