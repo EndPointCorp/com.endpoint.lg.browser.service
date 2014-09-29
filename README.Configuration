@@ -1,0 +1,7 @@
+CONFIGURATION VARIABLES FOR LG-CMS ACTIVITIES
+
+browser.service
+        # Expects a defined input route to receive director messages
+    space.activity.lg.browser.service.chrome.path       Where's chrome / chromium?
+    space.activity.lg.browser.service.chrome.flagsx     What flags should we use for it?
+    space.activity.browser.viewport                     Viewport name
