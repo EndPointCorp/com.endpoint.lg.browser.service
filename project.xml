@@ -23,7 +23,7 @@
         <value>scene_input</value>
       </property>
       <property name="space.activity.route.input.scene_input" required="false">
-        <value>/liquidgalaxy/director/scene</value>
+        <value>/director/scene</value>
       </property>
       <property name="space.activity.lg.browser.service.chrome.path" required="false">
         <value>/usr/bin/chromium-browser</value>
