@@ -48,13 +48,12 @@ public class BrowserWindow {
 
     }
 
-    BrowserWindow(BrowserTabInfo t, BaseActivity act, Log lg, WebSocketClientService wsockService) {
+    BrowserWindow(BrowserTabInfo t, BaseActivity act, String className, Log lg, WebSocketClientService wsockService) {
         tabInfo = t;
         log = lg;
         webSocketClientService = wsockService;
 
-        // XXX Probably need some better window ID stuff
-        windowId = new WindowInstanceIdentity("something"); // tmpdir.getAbsolutePath());
+        windowId = new WindowInstanceIdentity(className); // tmpdir.getAbsolutePath());
         window = new ManagedWindow(act, windowId);
 
         debugWebSocket =

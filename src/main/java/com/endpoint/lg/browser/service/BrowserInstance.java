@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -49,6 +50,7 @@ public class BrowserInstance {
 
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
+        String className;
 
         valid = false;
         runnerFactory = nrf;
@@ -66,7 +68,7 @@ public class BrowserInstance {
             return;
         }
 
-        runBrowser();
+        className = runBrowser();
         valid = true;
 
         // XXX Do something to fail this loop eventually
@@ -83,15 +85,15 @@ public class BrowserInstance {
         }
         catch (InterruptedException e) {}
 
-        connectWindows(debugPort);
+        connectWindows(debugPort, className);
     }
 
     /**
-     * Connects a websocket to each available browser tab that isn't already connected
+     * Connects a websocket to each available browser window that isn't already connected
      *
      * XXX Really need to test this with multiple calls, multiple windows, etc.
      */
-    private void connectWindows(int debugPort) {
+    private void connectWindows(int debugPort, String className) {
         HttpClient httpclient = new DefaultHttpClient();
         HttpGet httpget;
         HttpResponse resp;
@@ -119,7 +121,7 @@ public class BrowserInstance {
                 if (!connectedWindows.contains(t.id)) {
                     connectedWindows.add(t.id);
                     if (t.type.equals("page")) {
-                        windows.add(new BrowserWindow(t, activity, getLog(), webSocketClientService));
+                        windows.add(new BrowserWindow(t, activity, className, getLog(), webSocketClientService));
                     }
                 }
             }
@@ -133,8 +135,9 @@ public class BrowserInstance {
         return valid;
     }
 
-    private void runBrowser() {
+    private String runBrowser() {
         Map<String, Object> runnerConfig = Maps.newHashMap();
+        String className = UUID.randomUUID().toString();
 
         runnerConfig.put(
             NativeActivityRunner.ACTIVITYNAME,
@@ -143,7 +146,7 @@ public class BrowserInstance {
         runnerConfig
             .put(
                 NativeActivityRunner.FLAGS,
-                "--remote-debugging-port=" + debugPort + " " +
+                "--remote-debugging-port=" + debugPort + " --class " + className + " " +
                     config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.flags")
         );
 
@@ -152,6 +155,7 @@ public class BrowserInstance {
 
         runner.configure(runnerConfig);
         activity.addManagedResource(runner);
+        return className;
     }
 
     private Log getLog() {
