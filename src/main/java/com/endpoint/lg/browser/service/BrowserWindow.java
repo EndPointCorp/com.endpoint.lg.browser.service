@@ -1,6 +1,7 @@
 package com.endpoint.lg.browser.service;
 
 import com.endpoint.lg.support.window.ManagedWindow;
+import com.endpoint.lg.support.window.WindowGeometry;
 import com.endpoint.lg.support.window.WindowIdentity;
 import com.endpoint.lg.support.window.WindowInstanceIdentity;
 import interactivespaces.activity.binary.NativeActivityRunner;
@@ -60,7 +61,7 @@ public class BrowserWindow {
             webSocketClientService.newWebSocketClient(t.webSocketDebuggerUrl, new BrowserDebugWebSocketHandler(), getLog());
 
         debugWebSocket.startup();
-        window.setVisible(false);
+        disableWindow();
         getLog().debug("Created BrowserWindow object for tab ID " + t.id + " for tab type " + t.type + ", " + debugWebSocket);
     }
 
@@ -71,6 +72,13 @@ public class BrowserWindow {
     public void disableWindow() {
         enabled = false;
         window.setVisible(false);
+    }
+
+    // XXX there should be some way to fiddle with geometry and window location
+    // It's suggested I look in the appwrapper config in lg-cms for examples of how this is currently done
+
+    public void positionWindow(Integer width, Integer height, Integer x, Integer y) {
+        window.setGeometry(new WindowGeometry(width, height, x, y));
     }
 
     public void enableWindow() {
@@ -107,7 +115,4 @@ public class BrowserWindow {
         debugWebSocket.shutdown();
         window.shutdown();
     }
-
-    // XXX there should be some way to fiddle with geometry and window location
-    // It's suggested I look in the appwrapper config in lg-cms for examples of how this is currently done
 }

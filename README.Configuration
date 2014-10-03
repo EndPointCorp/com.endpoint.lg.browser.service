@@ -4,4 +4,5 @@ browser.service
         # Expects a defined input route to receive director messages
     space.activity.lg.browser.service.chrome.path       Where's chrome / chromium?
     space.activity.lg.browser.service.chrome.flagsx     What flags should we use for it?
+    space.activity.lg.browser.service.poolSize          Initial size of browser process pool, default 2
     space.activity.browser.viewport                     Viewport name

@@ -29,13 +29,13 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
- * Class to manage one browser instance, with one or more windows.
+ * Class to manage one browser instance, with one window
  *
  * @author Josh Tolley <josh@endpoint.com>
 */
 public class BrowserInstance {
-    private static int MIN_DEBUG_PORT = 9000;
-    private static int MAX_DEBUG_PORT = 10000;
+    private static int MIN_DEBUG_PORT = 19000;
+    private static int MAX_DEBUG_PORT = 20000;
 
     private NativeActivityRunnerFactory runnerFactory;
     private NativeActivityRunner runner;
@@ -44,32 +44,28 @@ public class BrowserInstance {
     private WebSocketClientService webSocketClientService;
     private BaseActivity activity;
     private int debugPort = 0;
-    private boolean valid;
-    private List<BrowserWindow> windows;
-    private Set<String> connectedWindows;
+    private BrowserWindow window;
+//    private List<BrowserWindow> windows;
+//    private Set<String> connectedWindows;
 
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
         String className;
 
-        valid = false;
         runnerFactory = nrf;
         activity = act;
         log = lg;
         config = cfg;
-        windows = new ArrayList<BrowserWindow>();
-        connectedWindows = new HashSet<String>();
         webSocketClientService = ise.getServiceRegistry().getService(WebSocketClientService.SERVICE_NAME);
-        // XXX disableWindow();
         runner = runnerFactory.newPlatformNativeActivityRunner(log);
 
         debugPort = findDebugPort();
         if (debugPort == 0) {
+            getLog().error("Couldn't start browser instance, because I couldn't find a debug port");
             return;
         }
 
         className = runBrowser();
-        valid = true;
 
         // XXX Do something to fail this loop eventually
         while (! runner.isRunning()) {
@@ -81,11 +77,11 @@ public class BrowserInstance {
         // Establish connection to the debug stuff
             // XXX So how do we know it should be ready for our debug connection?
         try {
-            Thread.sleep(1500);
+            Thread.sleep(2000);
         }
         catch (InterruptedException e) {}
 
-        connectWindows(debugPort, className);
+        connectDebug(debugPort, className);
     }
 
     /**
@@ -93,7 +89,7 @@ public class BrowserInstance {
      *
      * XXX Really need to test this with multiple calls, multiple windows, etc.
      */
-    private void connectWindows(int debugPort, String className) {
+    private void connectDebug(int debugPort, String className) {
         HttpClient httpclient = new DefaultHttpClient();
         HttpGet httpget;
         HttpResponse resp;
@@ -118,11 +114,8 @@ public class BrowserInstance {
             getLog().debug(sb);
             BrowserDebugInfo d = om.readValue(sb.toString(), BrowserDebugInfo.class);
             for (BrowserTabInfo t : d.tabs) {
-                if (!connectedWindows.contains(t.id)) {
-                    connectedWindows.add(t.id);
-                    if (t.type.equals("page")) {
-                        windows.add(new BrowserWindow(t, activity, className, getLog(), webSocketClientService));
-                    }
+                if (t.type.equals("page")) {
+                    window = new BrowserWindow(t, activity, className, getLog(), webSocketClientService);
                 }
             }
         }
@@ -131,23 +124,22 @@ public class BrowserInstance {
         }
     }
 
-    public boolean isValid() {
-        return valid;
-    }
-
     private String runBrowser() {
         Map<String, Object> runnerConfig = Maps.newHashMap();
-        String className = UUID.randomUUID().toString();
+        String className =
+            activity.getActivityFilesystem().getTempDataDirectory().getAbsolutePath() + "/" +
+            UUID.randomUUID().toString().replace("-", "");
 
         runnerConfig.put(
             NativeActivityRunner.ACTIVITYNAME,
             config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.path")
         );
-        runnerConfig
-            .put(
+        runnerConfig.put(
                 NativeActivityRunner.FLAGS,
-                "--remote-debugging-port=" + debugPort + " --class " + className + " " +
+                "--user-data-dir=" + className + " " +
+                "--remote-debugging-port=" + debugPort + " " +
                     config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.flags")
+                    + " --class=" + className
         );
 
         // Is this useful? Initial testing didn't prove it did much good.
@@ -166,33 +158,20 @@ public class BrowserInstance {
      * Signals container that all existing browsers can be recycled, such as
      * when a new scene message comes in
      */
-    public void newScene() {
-        for (BrowserWindow b : windows) {
-            b.disableWindow();
-        }
+    public void disable() {
+        window.disableWindow();
     }
 
     /**
      * Responds to individual window commands
      */
     @SuppressWarnings("unchecked")
-    public void handleBrowserCommand(Window window) {
+    public void handleBrowserCommand(Window w) {
         boolean found = false;
 
-        // XXX Do something with geometry stuff
-
-        // Search for a disabled instance we can use for this command.
-        for (BrowserWindow b : windows) {
-            if (! b.isEnabled()) {
-                b.navigate(window.assets[0]);
-                found = true;
-                break;
-            }
-        }
-
-        // Start another instance if we can't find one available already
-        if (! found) {
-        }
+        window.positionWindow(w.width, w.height, w.x_coord, w.y_coord);
+        window.enableWindow();
+        window.navigate(w.assets[0]);
     }
 
     /**
@@ -215,6 +194,7 @@ public class BrowserInstance {
             }
             catch (IOException e) {
                 // Port isn't available
+                getLog().debug("Port " + i + " isn't available");
             }
             finally {
                 try {
@@ -231,15 +211,14 @@ public class BrowserInstance {
         }
         if (debugPort == 0) {
             getLog().error("Couldn't find unused debug port for new browser activity");
+            return 0;
         }
         getLog().debug("Found debug port " + debugPort + " for new browser instance");
         return debugPort;
     }
 
     public void shutdown() {
-        for (BrowserWindow w : windows) {
-            w.shutdown();
-        }
+        window.shutdown();
         runner.shutdown();
     }
 }

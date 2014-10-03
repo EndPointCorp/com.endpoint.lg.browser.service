@@ -6,11 +6,13 @@ import com.endpoint.lg.support.message.Window;
 import com.google.common.collect.Maps;
 import interactivespaces.activity.impl.ros.BaseRoutableRosActivity;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 public class BrowserServiceActivity extends BaseRoutableRosActivity {
-    private BrowserInstance bc;
+    private List<BrowserInstance> browsers;
 
     @Override
     public void onActivitySetup() {
@@ -19,11 +21,24 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
 
     @Override
     public void onActivityStartup() {
-        bc = new BrowserInstance(
+        Integer browserPoolSize;
+        browsers = new ArrayList<BrowserInstance>();
+
+        // Default is 2 browsers, if we don't say otherwise
+        browserPoolSize = getConfiguration().getPropertyInteger("space.activity.lg.browser.service.poolSize", 2);
+        for (int i = 0; i < browserPoolSize; i++) {
+            newBrowser();
+        }
+        getLog().info("Activity com.endpoint.lg.browser.service startup");
+    }
+    
+    public BrowserInstance newBrowser() {
+        BrowserInstance bi = new BrowserInstance(
             this, getConfiguration(), getLog(),
             getController().getNativeActivityRunnerFactory(),
             getSpaceEnvironment());
-        getLog().info("Activity com.endpoint.lg.browser.service startup");
+        browsers.add(bi);
+        return bi;
     }
 
     @Override
@@ -44,7 +59,9 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     @Override
     public void onActivityPreShutdown() {
         getLog().info("Activity com.endpoint.lg.browser.service pre shutdown");
-        bc.shutdown();
+        for (BrowserInstance b : browsers) {
+            b.shutdown();
+        }
     }
 
     @Override
@@ -59,16 +76,27 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
 
     public void onNewInputJson(String channelName, Map<String, Object> message) {
         Scene s;
+        Iterator<BrowserInstance> i;
+        BrowserInstance bi;
 
         getLog().debug("Browser service activity got new message: " + message);
         try {
             s = Scene.fromJson(jsonStringify(message));
-            bc.newScene();
+            for (BrowserInstance b : browsers) {
+                b.disable();
+            }
+            i = browsers.iterator();
             for (Window w : s.windows) {
                 if (w.activity.equals("browser") && w.presentation_viewport.equals(
                         getConfiguration().getRequiredPropertyString("space.activity.browser.viewport")
                     )) {
-                    bc.handleBrowserCommand(w);
+                    if (i.hasNext()) {
+                        bi = i.next();
+                    }
+                    else {
+                        bi = newBrowser();
+                    }
+                    bi.handleBrowserCommand(w);
                 }
             }
         }
