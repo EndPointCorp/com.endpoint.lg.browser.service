@@ -74,9 +74,6 @@ public class BrowserWindow {
         window.setVisible(false);
     }
 
-    // XXX there should be some way to fiddle with geometry and window location
-    // It's suggested I look in the appwrapper config in lg-cms for examples of how this is currently done
-
     public void positionWindow(Integer width, Integer height, Integer x, Integer y) {
         window.setGeometry(new WindowGeometry(width, height, x, y));
     }
