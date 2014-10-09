@@ -129,11 +129,11 @@ public class BrowserInstance {
             UUID.randomUUID().toString().replace("-", "");
 
         runnerConfig.put(
-            NativeActivityRunner.ACTIVITYNAME,
+            NativeActivityRunner.EXECUTABLE_PATHNAME,
             config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.path")
         );
         runnerConfig.put(
-                NativeActivityRunner.FLAGS,
+                NativeActivityRunner.EXECUTABLE_FLAGS,
                 "--user-data-dir=" + className + " " +
                 "--remote-debugging-port=" + debugPort + " " +
                     config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.flags")
