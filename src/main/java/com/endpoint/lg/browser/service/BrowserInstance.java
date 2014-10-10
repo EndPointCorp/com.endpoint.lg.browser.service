@@ -36,6 +36,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 public class BrowserInstance {
     private static int MIN_DEBUG_PORT = 19000;
     private static int MAX_DEBUG_PORT = 20000;
+    private static String INITIAL_URL = "http://localhost/0xDEADBEEF";
 
     private NativeActivityRunnerFactory runnerFactory;
     private NativeActivityRunner runner;
@@ -45,8 +46,6 @@ public class BrowserInstance {
     private BaseActivity activity;
     private int debugPort = 0;
     private BrowserWindow window;
-//    private List<BrowserWindow> windows;
-//    private Set<String> connectedWindows;
 
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
@@ -111,9 +110,14 @@ public class BrowserInstance {
             is.close();
             getLog().debug(sb);
             BrowserDebugInfo d = om.readValue(sb.toString(), BrowserDebugInfo.class);
+
+            // Here we might have multiple tabs open. We need to be sure we
+            // only connect to the visible one. We do this by checking the URL
+            // for the proper value
             for (BrowserTabInfo t : d.tabs) {
-                if (t.type.equals("page")) {
+                if (t.type.equals("page") && t.url.equals(INITIAL_URL)) {
                     window = new BrowserWindow(t, activity, className, getLog(), webSocketClientService);
+                    break;
                 }
             }
         }
@@ -137,7 +141,7 @@ public class BrowserInstance {
                 "--user-data-dir=" + className + " " +
                 "--remote-debugging-port=" + debugPort + " " +
                     config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.flags")
-                    + " --class=" + className
+                    + " --class=" + className + " " + INITIAL_URL
         );
 
         // Is this useful? Initial testing didn't prove it did much good.
