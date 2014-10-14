@@ -5,4 +5,4 @@ browser.service
     space.activity.lg.browser.service.chrome.path       Where's chrome / chromium?
     space.activity.lg.browser.service.chrome.flags      What flags should we use for it?
     space.activity.lg.browser.service.poolSize          Initial size of browser process pool, default 2
-    space.activity.browser.viewport                     Viewport name
+    lg.window.viewport.target                           Viewport name

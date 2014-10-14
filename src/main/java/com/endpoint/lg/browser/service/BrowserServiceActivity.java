@@ -88,7 +88,7 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
             i = browsers.iterator();
             for (Window w : s.windows) {
                 if (w.activity.equals("browser") && w.presentation_viewport.equals(
-                        getConfiguration().getRequiredPropertyString("space.activity.browser.viewport")
+                        getConfiguration().getRequiredPropertyString("lg.window.viewport.target")
                     )) {
                     if (i.hasNext()) {
                         bi = i.next();
