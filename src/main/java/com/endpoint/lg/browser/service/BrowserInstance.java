@@ -171,6 +171,7 @@ public class BrowserInstance {
     public void handleBrowserCommand(Window w) {
         boolean found = false;
 
+        getLog().debug("Positioning browser window to " + w.x_coord + ", " + w.y_coord + ", with dimensions " + w.width + "x" + w.height);
         window.positionWindow(w.width, w.height, w.x_coord, w.y_coord);
         window.enableWindow();
         window.navigate(w.assets[0]);
