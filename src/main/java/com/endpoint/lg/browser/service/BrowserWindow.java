@@ -75,7 +75,7 @@ public class BrowserWindow {
     }
 
     public void positionWindow(Integer width, Integer height, Integer x, Integer y) {
-        window.setGeometry(new WindowGeometry(width, height, x, y));
+        window.setGeometryOffset(new WindowGeometry(width, height, x, y));
     }
 
     public void enableWindow() {
