@@ -50,6 +50,8 @@ public class BrowserInstance {
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
         String className;
+        HttpResponse resp;
+        int i = 0;
 
         runnerFactory = nrf;
         activity = act;
@@ -66,40 +68,64 @@ public class BrowserInstance {
 
         className = runBrowser();
 
-        // XXX Do something to fail this loop eventually
-        while (! runner.isRunning()) {
+        while ((window == null || !window.isDebugConnected()) && i < 20) {
+            i++;
             try {
                 Thread.sleep(100);
+                resp = getDebugHttp(debugPort);
+                if (resp != null)
+                    connectDebugWS(debugPort, resp, className);
             } catch(InterruptedException e) { }
         }
 
-        // Establish connection to the debug stuff
-            // XXX So how do we know it should be ready for our debug connection?
-        try {
-            Thread.sleep(2000);
+        if (!runner.isRunning()) {
+            throw new InteractiveSpacesException("Failed to run browser instance");
         }
-        catch (InterruptedException e) {}
+        if (window != null && ! window.isDebugConnected()) {
+            throw new InteractiveSpacesException("Failed to connect to the browser instance's debug socket");
+        }
 
-        connectDebug(debugPort, className);
+//        // Establish connection to the debug stuff
+//            // XXX So how do we know it should be ready for our debug connection?
+//        try {
+//            Thread.sleep(2000);
+//        }
+//        catch (InterruptedException e) {}
+//
+//        connectDebug(debugPort, className);
+    }
+
+    /**
+     * Attempts to get an HTTP debug response from a Chrome browser listening on the given debugPort
+     */
+    private HttpResponse getDebugHttp(int debugPort) {
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpGet httpget;
+        HttpResponse resp;
+
+        httpget = new HttpGet("http://localhost:" + debugPort + "/json");
+        try {
+            resp = httpclient.execute(httpget);
+            getLog().debug("Response: " + resp);
+            return resp;
+        }
+        catch (IOException e) {
+            getLog().error("Exception connecting to browser debug port", e);
+            return null;
+        }
     }
 
     /**
      * Connects a websocket to each available browser window that isn't already connected
      */
-    private void connectDebug(int debugPort, String className) {
-        HttpClient httpclient = new DefaultHttpClient();
-        HttpGet httpget;
-        HttpResponse resp;
+    private void connectDebugWS(int debugPort, HttpResponse resp, String className) {
         StringBuilder sb;
         InputStream is;
         byte[] buffer = new byte[2048];
         int length;
 
         ObjectMapper om = new ObjectMapper();
-        httpget = new HttpGet("http://localhost:" + debugPort + "/json");
         try {
-            resp = httpclient.execute(httpget);
-            getLog().debug("Response: " + resp);
             sb = new StringBuilder();
             is = resp.getEntity().getContent();
             sb.append("{\"tabs\":");
@@ -113,7 +139,7 @@ public class BrowserInstance {
 
             // Here we might have multiple tabs open. We need to be sure we
             // only connect to the visible one. We do this by checking the URL
-            // for the proper value
+            // for the one we requested when starting the instance.
             for (BrowserTabInfo t : d.tabs) {
                 if (t.type.equals("page") && t.url.equals(INITIAL_URL)) {
                     window = new BrowserWindow(t, activity, className, getLog(), webSocketClientService);

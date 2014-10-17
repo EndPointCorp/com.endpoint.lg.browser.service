@@ -79,7 +79,12 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         Iterator<BrowserInstance> i;
         BrowserInstance bi;
 
-        getLog().debug("Browser service activity got new message: " + message);
+        if (!isActivated()) {
+            getLog().info("Received message, but activity isn't yet running.");
+            return;
+        }
+
+        getLog().debug("Browser service activity got a new message: " + message);
         try {
             s = Scene.fromJson(jsonStringify(message));
             for (BrowserInstance b : browsers) {

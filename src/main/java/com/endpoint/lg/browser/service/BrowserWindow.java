@@ -49,6 +49,10 @@ public class BrowserWindow {
 
     }
 
+    public boolean isDebugConnected() {
+        return debugWebSocket.isOpen();
+    }
+
     BrowserWindow(BrowserTabInfo t, BaseActivity act, String className, Log lg, WebSocketClientService wsockService) {
         tabInfo = t;
         log = lg;
