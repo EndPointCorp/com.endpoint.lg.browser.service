@@ -96,7 +96,9 @@ public class BrowserWindow {
         // We could use JSON builders for this, but these commands are short,
         // and easy enough just to put together manually.
 
-        // XXX Do something if we're not yet connected on the debugWebSocket
+        if (! isDebugConnected()) {
+            throw new RuntimeException("Can't navigate browser window; debug socket isn't connected");
+        }
 
             // Note that this doesn't sanitize the url variable. If someone
             // gets worried about "url injection" they're welcome to change that.
@@ -107,7 +109,9 @@ public class BrowserWindow {
     }
 
     public void reload() {
-        // XXX Do something if we're not yet connected
+        if (! isDebugConnected()) {
+            throw new RuntimeException("Can't reload browser window; debug socket isn't connected");
+        }
         String command = "{\"id\":1,\"method\":\"Page.reload\",\"params\":{\"ignoreCache\":\"True\"}}";
         getLog().debug("Sending reload command: " + command);
         debugWebSocket.writeDataAsString(command);
