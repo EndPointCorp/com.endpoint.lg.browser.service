@@ -76,6 +76,7 @@ public class BrowserWindow {
     public void disableWindow() {
         enabled = false;
         window.setVisible(false);
+        window.lower();
     }
 
     public void positionWindow(Integer width, Integer height, Integer x, Integer y) {
@@ -86,6 +87,7 @@ public class BrowserWindow {
     public void enableWindow() {
         enabled = true;
         window.setVisible(true);
+        window.raise();
     }
 
     public boolean isEnabled() {
