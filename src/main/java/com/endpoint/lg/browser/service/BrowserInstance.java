@@ -1,6 +1,7 @@
 package com.endpoint.lg.browser.service;
 
 import com.endpoint.lg.browser.service.BrowserWindow;
+import com.endpoint.lg.support.interactivespaces.ConfigurationHelper;
 import com.endpoint.lg.support.message.Window;
 import com.google.common.collect.Maps;
 import interactivespaces.activity.binary.NativeActivityRunner;
@@ -170,8 +171,8 @@ public class BrowserInstance {
                 NativeActivityRunner.EXECUTABLE_FLAGS,
                 "--user-data-dir=" + className + " " +
                 "--remote-debugging-port=" + debugPort + " " +
-                    config.getRequiredPropertyString("space.activity.lg.browser.service.chrome.flags")
-                    + " --class=" + className + " " + INITIAL_URL
+                getConfigArray("space.activity.lg.browser.service.chrome.flags")
+                + " --class=" + className + " " + INITIAL_URL
         );
 
         // Is this useful? Initial testing didn't prove it did much good.
@@ -180,6 +181,10 @@ public class BrowserInstance {
         runner.configure(runnerConfig);
         activity.addManagedResource(runner);
         return className;
+    }
+
+    private String getConfigArray(String key) {
+        return ConfigurationHelper.getConfigurationConcat(config, key, " ");
     }
 
     private Log getLog() {
