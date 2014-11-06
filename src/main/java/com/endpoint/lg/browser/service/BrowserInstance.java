@@ -84,6 +84,9 @@ public class BrowserInstance {
         if (window != null && ! window.isDebugConnected()) {
             throw new InteractiveSpacesException("Failed to connect to the browser instance's debug socket");
         }
+        if (window == null) {
+            throw new InteractiveSpacesException("Failed to create managed window");
+        }
 
 //        // Establish connection to the debug stuff
 //            // XXX So how do we know it should be ready for our debug connection?
@@ -110,7 +113,8 @@ public class BrowserInstance {
             return resp;
         }
         catch (IOException e) {
-            getLog().error("Exception connecting to browser debug port", e);
+            // Don't want to log all these. It's expected we'll fail several times before success
+            // getLog().error("Exception connecting to browser debug port", e);
             return null;
         }
     }
@@ -187,7 +191,7 @@ public class BrowserInstance {
      * when a new scene message comes in
      */
     public void disable() {
-        window.disableWindow();
+        if (window != null) window.disableWindow();
     }
 
     /**
