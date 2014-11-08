@@ -33,10 +33,7 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     }
     
     public BrowserInstance newBrowser() {
-        BrowserInstance bi = new BrowserInstance(
-            this, getConfiguration(), getLog(),
-            getController().getNativeActivityRunnerFactory(),
-            getSpaceEnvironment());
+        BrowserInstance bi = new BrowserInstance(this, getConfiguration(), getLog(), getSpaceEnvironment());
         browsers.add(bi);
         return bi;
     }

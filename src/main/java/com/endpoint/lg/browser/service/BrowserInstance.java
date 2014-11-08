@@ -12,6 +12,8 @@ import interactivespaces.InteractiveSpacesException;
 import interactivespaces.service.web.client.WebSocketClientService;
 import interactivespaces.system.InteractiveSpacesEnvironment;
 import interactivespaces.util.data.json.JsonMapper;
+import interactivespaces.util.process.NativeApplicationRunner;
+import interactivespaces.util.process.NativeApplicationRunnerCollection;
 import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
@@ -39,8 +41,8 @@ public class BrowserInstance {
     private static int MAX_DEBUG_PORT = 20000;
     private static String INITIAL_URL = "http://localhost/0xDEADBEEF";
 
-    private NativeActivityRunnerFactory runnerFactory;
-    private NativeActivityRunner runner;
+    private NativeApplicationRunnerCollection runnerCollection;
+    private NativeApplicationRunner runner;
     private Log log;
     private Configuration config;
     private WebSocketClientService webSocketClientService;
@@ -48,18 +50,20 @@ public class BrowserInstance {
     private int debugPort = 0;
     private BrowserWindow window;
 
-    BrowserInstance(BaseActivity act, Configuration cfg, Log lg, NativeActivityRunnerFactory nrf, InteractiveSpacesEnvironment ise) {
+    BrowserInstance(BaseActivity act, Configuration cfg, Log lg, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
         String className;
         HttpResponse resp;
         int i = 0;
 
-        runnerFactory = nrf;
         activity = act;
         log = lg;
         config = cfg;
         webSocketClientService = ise.getServiceRegistry().getService(WebSocketClientService.SERVICE_NAME);
-        runner = runnerFactory.newPlatformNativeActivityRunner(log);
+
+        runnerCollection = new NativeApplicationRunnerCollection(ise, lg);
+        runner = runnerCollection.newNativeApplicationRunner();
+        activity.addManagedResource(runnerCollection);
 
         debugPort = findDebugPort();
         if (debugPort == 0) {
@@ -179,7 +183,7 @@ public class BrowserInstance {
         // runner.setRestartStrategy(new LimitedRetryRestartStrategy(10, 100, 5000, getSpaceEnvironment()));
 
         runner.configure(runnerConfig);
-        activity.addManagedResource(runner);
+        runnerCollection.addNativeApplicationRunner(runner);
         return className;
     }
 
