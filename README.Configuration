@@ -6,3 +6,14 @@ browser.service
     space.activity.lg.browser.service.chrome.flags      What flags should we use for it?
     space.activity.lg.browser.service.poolSize          Initial size of browser process pool, default 2
     lg.window.viewport.target                           Viewport name
+
+Working config
+lg.window.viewport.target=42-a
+space.activity.lg.browser.service.chrome.flags.1=--enable-webgl --enable-accelerated-compositing
+space.activity.lg.browser.service.chrome.flags.2=--disable-dev-tools --disable-logging --disable-metrics
+space.activity.lg.browser.service.chrome.flags.3=--disable-metrics-reporting --disable-breakpad
+space.activity.lg.browser.service.chrome.flags.4=--disable-default-apps --disable-extensions --disable-java
+space.activity.lg.browser.service.chrome.flags.5=--disable-session-storage --disable-translate
+space.activity.lg.browser.service.chrome.flags.6=--force-compositing-mod --no-first-run --incognito --kiosk
+space.activity.lg.browser.service.chrome.path=/usr/bin/google-chrome
+space.activity.lg.browser.service.poolSize=2
