@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import interactivespaces.activity.impl.ros.BaseRoutableRosActivity;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -89,9 +90,11 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
             }
             i = browsers.iterator();
             for (Window w : s.windows) {
-                if (w.activity.equals("browser") && w.presentation_viewport.equals(
-                        getConfiguration().getRequiredPropertyString("lg.window.viewport.target")
-                    )) {
+                if (w.activity.equals("browser") &&
+                        Arrays.asList(
+                            getConfiguration().getRequiredPropertyString("lg.window.viewport.target").split(",")
+                        ).indexOf(w.presentation_viewport) != -1
+                    ) {
                     if (i.hasNext()) {
                         bi = i.next();
                     }
