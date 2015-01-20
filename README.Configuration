@@ -33,3 +33,6 @@ STANDARD_ARGS="--enable-webgl --enable-accelerated-compositing --force-compositi
 --disable-extensions-file-access-check
 --crash-dumps-dir=${HOME}/cache/${app_dir}/crashes
 --remote-debugging-port=${RAND_PORT}"
+
+Or better, see this:
+https://github.com/EndPointCorp/lg-live-image/blob/portal/config/includes.chroot/home/lg/bin/lg-browser
