@@ -49,6 +49,8 @@ public class BrowserInstance {
     private BaseActivity activity;
     private int debugPort = 0;
     private BrowserWindow window;
+    private Window currentWindow;               // The Window message we processed to get into our current state
+    private boolean isAvailable;
 
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
@@ -93,14 +95,8 @@ public class BrowserInstance {
             throw new InteractiveSpacesException("Failed to create managed window");
         }
 
-//        // Establish connection to the debug stuff
-//            // XXX So how do we know it should be ready for our debug connection?
-//        try {
-//            Thread.sleep(2000);
-//        }
-//        catch (InterruptedException e) {}
-//
-//        connectDebug(debugPort, className);
+        isAvailable = true;
+        currentWindow = null;
     }
 
     /**
@@ -200,7 +196,17 @@ public class BrowserInstance {
      * when a new scene message comes in
      */
     public void disable() {
+        currentWindow = null;
+        isAvailable = true;
         if (window != null) window.disableWindow();
+    }
+
+    public Window getCurrentWindow() {
+        return currentWindow;
+    }
+
+    public boolean isAvailable() {
+        return isAvailable;
     }
 
     /**
@@ -210,7 +216,10 @@ public class BrowserInstance {
     public void handleBrowserCommand(Window w) {
         boolean found = false;
 
+        currentWindow = w;
+        isAvailable = false;
         getLog().debug("Positioning browser window to " + w.x_coord + ", " + w.y_coord + ", with dimensions " + w.width + "x" + w.height);
+        window.setViewport(w.presentation_viewport);
         window.positionWindow(w.width, w.height, w.x_coord, w.y_coord);
         window.enableWindow();
         window.navigate(w.assets[0]);

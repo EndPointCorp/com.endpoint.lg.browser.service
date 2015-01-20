@@ -8,16 +8,31 @@ import interactivespaces.activity.impl.ros.BaseRoutableRosActivity;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 public class BrowserServiceActivity extends BaseRoutableRosActivity {
     private List<BrowserInstance> browsers;
+    private HashSet<String> viewports;
 
     @Override
     public void onActivitySetup() {
         getLog().info("Activity com.endpoint.lg.browser.service setup");
+    }
+
+    @Override
+    public void onActivityConfiguration(Map<String, Object> update) {
+        getLog().debug("Browser service configuration signalled");
+        reloadViewports();
+    }
+
+    private void reloadViewports() {
+        viewports = new HashSet<String>(Arrays.asList(
+                        getConfiguration().getRequiredPropertyString("lg.window.viewport.target").split(",")
+                    ));
+        getLog().debug("Reloaded viewports for browser activity");
     }
 
     @Override
@@ -30,6 +45,8 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         for (int i = 0; i < browserPoolSize; i++) {
             newBrowser();
         }
+
+        reloadViewports();
         getLog().info("Activity com.endpoint.lg.browser.service startup");
     }
     
@@ -73,9 +90,10 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
     }
 
     public void onNewInputJson(String channelName, Map<String, Object> message) {
-        Scene s;
         Iterator<BrowserInstance> i;
         BrowserInstance bi;
+        HashSet<Window> windows;
+        Scene s;
 
         if (!isActivated()) {
             getLog().info("Received message, but activity isn't yet running.");
@@ -85,24 +103,46 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         getLog().debug("Browser service activity got a new message: " + message);
         try {
             s = Scene.fromJson(jsonStringify(message));
-            for (BrowserInstance b : browsers) {
-                b.disable();
-            }
-            i = browsers.iterator();
+
+            // Collect all windows in the new scene into a set. I can review this
+            // set for windows that are already implemented in active browsers, and
+            // remove those from the set before further processing.
+            windows = new HashSet<Window>();
             for (Window w : s.windows) {
-                if (w.activity.equals("browser") &&
-                        Arrays.asList(
-                            getConfiguration().getRequiredPropertyString("lg.window.viewport.target").split(",")
-                        ).indexOf(w.presentation_viewport) != -1
-                    ) {
-                    if (i.hasNext()) {
-                        bi = i.next();
+                if (w.activity.equals("browser") && viewports.contains(w.presentation_viewport)) {
+                    getLog().debug("Adding window to scene: " + w.toString());
+                    windows.add(w);
+                }
+                else {
+                    getLog().debug("Not handling window message, because it doesn't match viewports or activity");
+                }
+            }
+
+            // Look for browsers currently running any of the windows in this new scene
+            for (BrowserInstance b : browsers) {
+                if (!b.isAvailable()) {
+                    // If it's not available, it must be running something.
+                    // Does the Window it's running appear in the current
+                    // Scene? If so, leave it alone. If not, disable it.
+                    if (windows.contains(b.getCurrentWindow())) {
+                        getLog().info("Removed window because it's already displayed: " + b.getCurrentWindow().toString());
+                        windows.remove(b.getCurrentWindow());
                     }
                     else {
-                        bi = newBrowser();
+                        getLog().debug("Disabling browser with currentWindow " + b.getCurrentWindow().toString());
+                        b.disable();
                     }
-                    bi.handleBrowserCommand(w);
                 }
+            }
+            i = browsers.iterator();
+            for (Window w : windows) {
+                if (i.hasNext()) {
+                    bi = i.next();
+                }
+                else {
+                    bi = newBrowser();
+                }
+                bi.handleBrowserCommand(w);
             }
         }
         catch (IOException e) {

@@ -94,6 +94,10 @@ public class BrowserWindow {
         return enabled;
     }
 
+    public void setViewport(String viewport) {
+        window.setViewportName(viewport);
+    }
+
     public void navigate(String url) {
         // We could use JSON builders for this, but these commands are short,
         // and easy enough just to put together manually.
