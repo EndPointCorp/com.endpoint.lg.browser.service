@@ -51,6 +51,7 @@ public class BrowserInstance {
     private BrowserWindow window;
     private Window currentWindow;               // The Window message we processed to get into our current state
     private boolean isAvailable;
+    private boolean isStatic;
 
     BrowserInstance(BaseActivity act, Configuration cfg, Log lg, InteractiveSpacesEnvironment ise) {
         final File tmpdir = act.getActivityFilesystem().getTempDataDirectory();
@@ -58,6 +59,7 @@ public class BrowserInstance {
         HttpResponse resp;
         int i = 0;
 
+        isStatic = false;
         activity = act;
         log = lg;
         config = cfg;
@@ -207,6 +209,20 @@ public class BrowserInstance {
 
     public boolean isAvailable() {
         return isAvailable;
+    }
+
+    public boolean isStatic() {
+        return isStatic;
+    }
+
+    public void navigate(BrowserStaticPageConf p) {
+        isStatic = true;
+        isAvailable = false;
+        getLog().debug("Positioning browser window to " + p.x_coord + ", " + p.y_coord + ", with dimensions " + p.width + "x" + p.height + ", on viewport " + p.viewport + " and URL " + p.url);
+        window.setViewport(p.viewport);
+        window.positionWindow(p.width, p.height, p.x_coord, p.y_coord);
+        window.enableWindow();
+        window.navigate(p.url);
     }
 
     /**

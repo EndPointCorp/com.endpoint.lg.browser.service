@@ -51,6 +51,47 @@
       <property name="lg.window.viewport.some_viewport.y" required="false">
         <value>10</value>
       </property>
+      <!--
+      <property name="lg.browser.static_pages" required="false">
+        <value>one,two</value>
+      </property>
+      <property name="lg.browser.static_page.one.url" required="false">
+        <value>http://www.google.com</value>
+      </property>
+      <property name="lg.browser.static_page.one.viewport" required="false">
+        <value>some_viewport</value>
+      </property>
+      <property name="lg.browser.static_page.one.width" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.browser.static_page.one.height" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.browser.static_page.one.x_coord" required="false">
+        <value>0</value>
+      </property>
+      <property name="lg.browser.static_page.one.y_coord" required="false">
+        <value>0</value>
+      </property>
+      <property name="lg.browser.static_page.two.url" required="false">
+        <value>http://www.endpoint.com</value>
+      </property>
+      <property name="lg.browser.static_page.two.viewport" required="false">
+        <value>some_viewport</value>
+      </property>
+      <property name="lg.browser.static_page.two.width" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.browser.static_page.two.height" required="false">
+        <value>100</value>
+      </property>
+      <property name="lg.browser.static_page.two.x_coord" required="false">
+        <value>0</value>
+      </property>
+      <property name="lg.browser.static_page.two.y_coord" required="false">
+        <value>0</value>
+      </property>
+      -->
     </configuration>
   </activity>
 </project>

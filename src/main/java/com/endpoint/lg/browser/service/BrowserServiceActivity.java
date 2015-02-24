@@ -35,19 +35,54 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
         getLog().debug("Reloaded viewports for browser activity");
     }
 
+    public ArrayList<BrowserStaticPageConf> getStaticPages() {
+        ArrayList<BrowserStaticPageConf> staticPages = new ArrayList<BrowserStaticPageConf>();
+        String staticPageNames = getConfiguration().getPropertyString("lg.browser.static_pages", "");
+        String staticName;
+
+        for (String pageName : staticPageNames.split(",")) {
+            BrowserStaticPageConf page = new BrowserStaticPageConf();
+            page.name = pageName;
+            page.url = getConfiguration().getPropertyString("lg.browser.static_page." + pageName + ".url", "");
+            page.viewport = getConfiguration().getPropertyString("lg.browser.static_page." + pageName + ".viewport", "");
+            page.height = getConfiguration().getPropertyInteger("lg.browser.static_page." + pageName + ".height", 0);
+            page.width = getConfiguration().getPropertyInteger("lg.browser.static_page." + pageName + ".width", 0);
+            page.x_coord = getConfiguration().getPropertyInteger("lg.browser.static_page." + pageName + ".x_coord", 0);
+            page.y_coord = getConfiguration().getPropertyInteger("lg.browser.static_page." + pageName + ".y_coord", 0);
+
+            if (page.url.equals("") || page.viewport.equals("")) {
+                getLog().warn("Browser service static page " + pageName + " isn't completly defined. Needs lg.browser.static_page." + pageName + ".url and lg.browser.static_page." + pageName + ".viewport configuration values.");
+            }
+            else {
+                staticPages.add(page);
+            }
+        }
+        return staticPages;
+    }
+
     @Override
     public void onActivityStartup() {
         Integer browserPoolSize;
         browsers = new ArrayList<BrowserInstance>();
+        ArrayList<BrowserStaticPageConf> staticPages = getStaticPages();
 
-        // Default is 2 browsers, if we don't say otherwise
+        // Default is 2 browsers, if we don't say otherwise, plus one for each static instance
         browserPoolSize = getConfiguration().getPropertyInteger("space.activity.lg.browser.service.poolSize", 2);
         for (int i = 0; i < browserPoolSize; i++) {
             newBrowser();
         }
+        for (BrowserStaticPageConf p : staticPages) {
+            newBrowser(p);
+        }
 
         reloadViewports();
         getLog().info("Activity com.endpoint.lg.browser.service startup");
+    }
+
+    public BrowserInstance newBrowser(BrowserStaticPageConf p) {
+        BrowserInstance bi = newBrowser();
+        bi.navigate(p);
+        return bi;
     }
     
     public BrowserInstance newBrowser() {
@@ -120,10 +155,11 @@ public class BrowserServiceActivity extends BaseRoutableRosActivity {
 
             // Look for browsers currently running any of the windows in this new scene
             for (BrowserInstance b : browsers) {
-                if (!b.isAvailable()) {
+                if (!b.isAvailable() && !b.isStatic()) {
                     // If it's not available, it must be running something.
                     // Does the Window it's running appear in the current
                     // Scene? If so, leave it alone. If not, disable it.
+                    // Ignore static windows
                     if (windows.contains(b.getCurrentWindow())) {
                         getLog().info("Removed window because it's already displayed: " + b.getCurrentWindow().toString());
                         windows.remove(b.getCurrentWindow());
