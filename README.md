@@ -1,13 +1,22 @@
-CONFIGURATION VARIABLES FOR LG-CMS ACTIVITIES
+LG Browser Service
+==================
+
+Java package: com.endpoint.lg.browser.service
+
+Liquid Galaxy Interactive Spaces activity to manage browser windows in response to JSON messages.
+
+
+Configuration variables for LG-CMS activities
+---------------------------------------------
 
 browser.service
-        # Expects a defined input route to receive director messages
+    # Expects a defined input route to receive director messages
     space.activity.lg.browser.service.chrome.path       Where's chrome / chromium?
     space.activity.lg.browser.service.chrome.flags      What flags should we use for it?
     space.activity.lg.browser.service.poolSize          Initial size of browser process pool, default 2
     lg.window.viewport.target                           Viewport name
 
-Working config
+# Working config
 lg.window.viewport.target=42-a
 space.activity.lg.browser.service.chrome.flags.1=--enable-webgl --enable-accelerated-compositing
 space.activity.lg.browser.service.chrome.flags.2=--disable-dev-tools --disable-logging --disable-metrics
@@ -33,6 +42,3 @@ STANDARD_ARGS="--enable-webgl --enable-accelerated-compositing --force-compositi
 --disable-extensions-file-access-check
 --crash-dumps-dir=${HOME}/cache/${app_dir}/crashes
 --remote-debugging-port=${RAND_PORT}"
-
-Or better, see this:
-https://github.com/EndPointCorp/lg-live-image/blob/portal/config/includes.chroot/home/lg/bin/lg-browser

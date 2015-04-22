@@ -74,7 +74,7 @@
         <value>0</value>
       </property>
       <property name="lg.browser.static_page.two.url" required="false">
-        <value>http://www.endpoint.com</value>
+        <value>https://www.endpoint.com</value>
       </property>
       <property name="lg.browser.static_page.two.viewport" required="false">
         <value>some_viewport</value>
