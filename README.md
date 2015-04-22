@@ -9,6 +9,7 @@ Liquid Galaxy Interactive Spaces activity to manage browser windows in response 
 Configuration variables for LG-CMS activities
 ---------------------------------------------
 
+```
 browser.service
     # Expects a defined input route to receive director messages
     space.activity.lg.browser.service.chrome.path       Where's chrome / chromium?
@@ -35,13 +36,14 @@ STANDARD_ARGS="--enable-webgl --enable-accelerated-compositing --force-compositi
 --disable-session-storage --disable-translate
 --disk-cache-size=2147483647
 --disk-cache-dir=${HOME}/cache/${app_dir}
-        # Note that touch stuff depends on something else in /tmp/lg-touch_id, which our ISO doesn't yet have
+# Note that touch stuff depends on something else in /tmp/lg-touch_id, which our ISO doesn't yet have
 --touch-events=enabled --disable-pinch --overscroll-history-navigation=0
 --disable-touch-editing
 --log-level=0 --no-experiments --video-threads=${video_threads}
 --disable-extensions-file-access-check
 --crash-dumps-dir=${HOME}/cache/${app_dir}/crashes
 --remote-debugging-port=${RAND_PORT}"
+```
 
 
 Copyright (C) 2015 Google Inc.  
