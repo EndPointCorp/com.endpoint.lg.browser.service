@@ -45,7 +45,6 @@ STANDARD_ARGS="--enable-webgl --enable-accelerated-compositing --force-compositi
 --remote-debugging-port=${RAND_PORT}"
 ```
 
-
 Copyright (C) 2015 Google Inc.
 Copyright (C) 2015 End Point Corporation
 
