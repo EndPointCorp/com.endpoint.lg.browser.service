@@ -46,7 +46,7 @@ STANDARD_ARGS="--enable-webgl --enable-accelerated-compositing --force-compositi
 ```
 
 
-Copyright (C) 2015 Google Inc.  
+Copyright (C) 2015 Google Inc.
 Copyright (C) 2015 End Point Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
