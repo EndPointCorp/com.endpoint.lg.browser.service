@@ -6,7 +6,7 @@
   </description>
 
   <identifyingName>com.endpoint.lg.browser.service</identifyingName>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
 
   <activity type="interactivespaces_native">
     <name>com.endpoint.lg.browser.service</name>
