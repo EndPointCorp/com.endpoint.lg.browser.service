@@ -30,7 +30,7 @@ import interactivespaces.service.web.client.WebSocketClientService;
 import interactivespaces.system.InteractiveSpacesEnvironment;
 import interactivespaces.util.data.json.JsonMapper;
 import interactivespaces.util.process.NativeApplicationRunner;
-import interactivespaces.util.process.NativeApplicationRunnerCollection;
+import interactivespaces.util.process.StandardNativeApplicationRunnerCollection;
 import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class BrowserInstance {
     private static int MAX_DEBUG_PORT = 20000;
     private static String INITIAL_URL = "http://localhost/0xDEADBEEF";
 
-    private NativeApplicationRunnerCollection runnerCollection;
+    private StandardNativeApplicationRunnerCollection runnerCollection;
     private NativeApplicationRunner runner;
     private Log log;
     private Configuration config;
@@ -82,7 +82,7 @@ public class BrowserInstance {
         config = cfg;
         webSocketClientService = ise.getServiceRegistry().getService(WebSocketClientService.SERVICE_NAME);
 
-        runnerCollection = new NativeApplicationRunnerCollection(ise, lg);
+        runnerCollection = new StandardNativeApplicationRunnerCollection(ise, lg);
         runner = runnerCollection.newNativeApplicationRunner();
         activity.addManagedResource(runnerCollection);
 
